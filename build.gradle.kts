@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 plugins {
   id("com.adarshr.test-logger") version "4.0.0"
   id("org.jetbrains.kotlin.jvm") version "2.2.0"
+  id("java-library")
+  id("maven-publish")
 }
+
+group = "com.bx.thirdparty.android"
+version = "1.0.0-SNAPSHOT"
 
 repositories {
   mavenCentral()
@@ -25,17 +29,17 @@ repositories {
 }
 
 dependencies {
-  implementation("androidx.annotation:annotation:1.9.1")
-  implementation("co.nstant.in:cbor:0.9")
-  implementation("com.google.code.gson:gson:2.11.0")
-  implementation("com.google.errorprone:error_prone_annotations:2.41.0")
-  implementation("com.google.protobuf:protobuf-javalite:4.28.3")
-  implementation("com.google.protobuf:protobuf-kotlin-lite:4.28.3")
-  implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
-  implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.0")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.10.2")
-  implementation("com.google.guava:guava:33.5.0-jre")
+  api("androidx.annotation:annotation:1.9.1")
+  api("co.nstant.in:cbor:0.9")
+  api("com.google.code.gson:gson:2.11.0")
+  api("com.google.errorprone:error_prone_annotations:2.41.0")
+  api("com.google.protobuf:protobuf-javalite:4.28.3")
+  api("com.google.protobuf:protobuf-kotlin-lite:4.28.3")
+  api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+  api("org.jetbrains.kotlin:kotlin-stdlib:2.2.0")
+  api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+  api("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.10.2")
+  api("com.google.guava:guava:33.5.0-jre")
 
   testImplementation(kotlin("test"))
   testImplementation("com.google.testparameterinjector:test-parameter-injector:1.18")
@@ -56,7 +60,15 @@ tasks {
   compileTestKotlin { compilerOptions { javaParameters = true } }
 }
 
-val generatedSourcesDir = layout.buildDirectory.dir("generated")
+val generatedSourcesDir = layout.buildDirectory.dir("generated/sources")
+
+val sourcesJar by tasks.registering(Jar::class) {
+  archiveClassifier.set("sources")
+  from("src/main/kotlin")
+  from(generatedSourcesDir)
+  dependsOn(generateSources)
+  dependsOn(tasks.named("compileJava"))
+}
 
 val googleTrustAnchors by
   tasks.registering {
@@ -94,7 +106,7 @@ val googleTrustAnchors by
         """
         )
     }
-  }
+}
 
 val generateSources by
   tasks.registering {
@@ -105,3 +117,32 @@ val generateSources by
 sourceSets { main { kotlin.srcDir(generateSources) } }
 
 tasks.named("compileKotlin").configure { dependsOn("generateSources") }
+
+publishing {
+  publications {
+    create<MavenPublication>("maven") {
+      from(components["kotlin"])
+      groupId = "com.bx.thirdparty.android"
+      artifactId = "keyattestation"
+      version = "1.0.0-SNAPSHOT"
+      artifact(sourcesJar)
+      pom {
+        name.set("keyattestation")
+        description.set("Android Key Attestation verification library - thin jar from android/keyattestation")
+        url.set("https://github.com/Mrchenkeyu/keyattestation")
+        licenses { license { name.set("Apache License 2.0"); url.set("http://www.apache.org/licenses/LICENSE-2.0") } }
+      }
+    }
+  }
+  repositories {
+    maven {
+      name = "nexusSnapshots"
+      url = uri("http://nexus.work.xxbbc.com/repository/maven-snapshots/")
+      credentials {
+        username = (findProperty("nexusUsername") as String?) ?: System.getenv("NEXUS_USERNAME") ?: error("nexusUsername not configured in ~/.gradle/gradle.properties")
+        password = (findProperty("nexusPassword") as String?) ?: System.getenv("NEXUS_PASSWORD") ?: error("nexusPassword not configured in ~/.gradle/gradle.properties")
+      }
+      isAllowInsecureProtocol = true
+    }
+  }
+}
