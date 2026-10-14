@@ -21,7 +21,7 @@ plugins {
 }
 
 group = "com.bx.thirdparty.android"
-version = "1.0.0-SNAPSHOT"
+version = "1.0.1-SNAPSHOT"
 
 repositories {
   mavenCentral()
@@ -40,6 +40,7 @@ dependencies {
   api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
   api("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.10.2")
   api("com.google.guava:guava:33.5.0-jre")
+  implementation("org.slf4j:slf4j-api:2.0.17")
 
   testImplementation(kotlin("test"))
   testImplementation("com.google.testparameterinjector:test-parameter-injector:1.18")
@@ -124,7 +125,7 @@ publishing {
       from(components["kotlin"])
       groupId = "com.bx.thirdparty.android"
       artifactId = "keyattestation"
-      version = "1.0.0-SNAPSHOT"
+      version = "1.0.1-SNAPSHOT"
       artifact(sourcesJar)
       pom {
         name.set("keyattestation")
